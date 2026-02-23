@@ -60,6 +60,7 @@ static void	bishop_hymn_run(const char *, u_int8_t, u_int8_t);
 static void	bishop_liturgy_request(struct sanctum_packet *);
 static void	bishop_liturgy_address(char *, size_t, u_int8_t, u_int8_t);
 
+static void	bishop_drop_access(void);
 static int	bishop_split_string(char *, const char *, char **, size_t);
 
 /* The local queues. */
@@ -92,6 +93,7 @@ sanctum_bishop(struct sanctum_proc *proc)
 	PRECOND(sanctum->mode == SANCTUM_MODE_LITURGY);
 
 	io = proc->arg;
+	bishop_drop_access();
 
 	sanctum_signal_trap(SIGQUIT);
 	sanctum_signal_ignore(SIGINT);
@@ -157,6 +159,22 @@ sanctum_bishop(struct sanctum_proc *proc)
 	bishop_hymn_read();
 
 	exit(0);
+}
+
+/*
+ * Drop access to the queues we do not need.
+ *
+ * Bishop only starts in liturgy mode which only allocated
+ * the chapel/purgatory/bishop queues.
+ */
+static void
+bishop_drop_access(void)
+{
+	sanctum_shm_detach(io->chapel);
+	sanctum_shm_detach(io->purgatory);
+
+	io->chapel = NULL;
+	io->purgatory = NULL;
 }
 
 /*
